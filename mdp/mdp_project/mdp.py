@@ -189,6 +189,33 @@ class CliffWalking(CliffWalkingEnv):
             )
 
 
+def value_iteration(env, gamma=0.9, epsilon=1e-8, max_iters=1000):
+    n_states = env.nS
+    n_actions = env.nA
+    V = np.zeros(n_states)
+    # Initialize value function
+
+    for _ in range(max_iters):
+        delta = 0
+        for s in range(n_states):
+            v_old = V[s]
+            # Update value function using the Bellman optimality equation
+            V[s] = max([sum([p * (r + gamma * V[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(n_actions)])
+            delta = max(delta, abs(v_old - V[s]))
+
+        # Check for convergence
+        if delta < epsilon:
+            break
+
+    # Extract optimal policy
+    policy = np.zeros(n_states, dtype=int)
+    for s in range(n_states):
+        # Choose action that maximizes expected return
+        policy[s] = np.argmax([sum([p * (r + gamma * V[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(n_actions)])
+
+    return V, policy
+
+
 if __name__ == '__main__':
     # Create an environment
     env = CliffWalking(render_mode="human")
@@ -197,15 +224,17 @@ if __name__ == '__main__':
     # Define the maximum number of iterations
     max_iter_number = 1000
 
-    for __ in range(max_iter_number):
-        # TODO: Implement the agent policy here
-        # Note: .sample() is used to sample random action from the environment's action space
+    v, policy = value_iteration(env)
 
-        # Choose an action (Replace this random action with your agent's policy)
-        action = env.action_space.sample()
+    current = observation
 
-        # Perform the action and receive feedback from the environment
+    for _ in range(max_iter_number):
+
+        action = policy[current]
+
         next_state, reward, done, truncated, info = env.step(action)
+
+        current = next_state
 
         if done or truncated:
             observation, info = env.reset()
