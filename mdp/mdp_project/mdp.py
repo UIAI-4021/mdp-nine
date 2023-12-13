@@ -252,7 +252,7 @@ if __name__ == '__main__':
     # Define the maximum number of iterations
     max_iter_number = 1000
 
-    v, policy = value_iteration(env)
+    policy = value_iteration(env)
 
     current = observation
 
