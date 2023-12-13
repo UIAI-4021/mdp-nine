@@ -189,31 +189,59 @@ class CliffWalking(CliffWalkingEnv):
             )
 
 
-def value_iteration(env, gamma=0.9, epsilon=1e-8, max_iters=1000):
-    n_states = env.nS
-    n_actions = env.nA
-    V = np.zeros(n_states)
-    # Initialize value function
+def value_iteration(env):
+    gamma = 0.9
+    epsilon = 1e-8
+    max_iters = 1000
+
+    V = np.zeros(env.nS)
+    q = np.zeros(env.nS * env.nA)
+    Q = q.reshape(env.nS, env.nA)
 
     for _ in range(max_iters):
         delta = 0
-        for s in range(n_states):
-            v_old = V[s]
-            # Update value function using the Bellman optimality equation
-            V[s] = max([sum([p * (r + gamma * V[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(n_actions)])
+        for s in range(env.nS):
+            v_old = V[s].copy()
+            row, col = s // 12, s % 12
+            if s == 47:
+                V[s] = 100000
+            elif env._cliff[row][col] == 1:
+                V[s] = -100000
+            else:
+                for a in range(env.nA):
+                    Q[s] = [0 for _ in range(env.nA)]
+                    match a:
+                        case 0:
+                            actions = [0, 1, 3]
+                            for a_ in actions:
+                                for p, s_, r, _ in env.P[s][a_]:
+                                    Q[s][a] += p * (r + gamma * V[s_])
+                        case 1:
+                            actions = [0, 1, 2]
+                            for a_ in actions:
+                                for p, s_, r, _ in env.P[s][a_]:
+                                    Q[s][a] += p * (r + gamma * V[s_])
+                        case 2:
+                            actions = [1, 2, 3]
+                            for a_ in actions:
+                                for p, s_, r, _ in env.P[s][a_]:
+                                    Q[s][a] += p * (r + gamma * V[s_])
+                        case 3:
+                            actions = [1, 2, 3]
+                            for a_ in actions:
+                                for p, s_, r, _ in env.P[s][a_]:
+                                    Q[s][a] += p * (r + gamma * V[s_])
+                V[s] = max(Q[s])
             delta = max(delta, abs(v_old - V[s]))
 
-        # Check for convergence
         if delta < epsilon:
             break
 
-    # Extract optimal policy
-    policy = np.zeros(n_states, dtype=int)
-    for s in range(n_states):
-        # Choose action that maximizes expected return
-        policy[s] = np.argmax([sum([p * (r + gamma * V[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(n_actions)])
+    policy = np.zeros(env.nS)
+    for s in range(env.nS):
+        policy[s] = np.argmax(Q[s])
 
-    return V, policy
+    return policy
 
 
 if __name__ == '__main__':
