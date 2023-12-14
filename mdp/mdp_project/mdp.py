@@ -197,6 +197,7 @@ def value_iteration(env):
     V = np.zeros(env.nS)
     q = np.zeros(env.nS * env.nA)
     Q = q.reshape(env.nS, env.nA)
+    check = False
 
     for _ in range(max_iters):
         delta = 0
@@ -204,9 +205,9 @@ def value_iteration(env):
             v_old = V[s].copy()
             row, col = s // 12, s % 12
             if s == 47:
-                V[s] = 100000
-            elif env._cliff[row][col] == 1:
-                V[s] = -100000
+                V[s] = 5000
+            elif env._cliff[row][col]:
+                V[s] = -100
             else:
                 for a in range(env.nA):
                     Q[s] = [0 for _ in range(env.nA)]
@@ -232,9 +233,14 @@ def value_iteration(env):
                                 for p, s_, r, _ in env.P[s][a_]:
                                     Q[s][a] += p * (r + gamma * V[s_])
                 V[s] = max(Q[s])
-            delta = max(delta, abs(v_old - V[s]))
+                delta = max(delta, abs(v_old - V[s]))
 
-        if delta < epsilon:
+                if delta < epsilon:
+                    check = True
+                    break
+            if check:
+                break
+        if check:
             break
 
     policy = np.zeros(env.nS)
